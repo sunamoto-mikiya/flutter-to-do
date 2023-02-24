@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 void main() async {
   // 初期化処理を追加
@@ -34,7 +35,41 @@ class _LoginPageState extends State<LoginPage> {
                 onChanged: (String value) => setState(() {
                   email = value;
                 }),
-              )
+              ),
+              TextFormField(
+                decoration: InputDecoration(labelText: 'パスワード'),
+                onChanged: (String value) => setState(() {
+                  password = value;
+                }),
+              ),
+              Container(
+                padding: EdgeInsets.all(8),
+                // メッセージ表示
+                child: Text(infoText),
+              ),
+              Container(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    child: Text('ユーザー登録'),
+                    onPressed: () async {
+                      try {
+                        final FirebaseAuth auth = FirebaseAuth.instance;
+                        await auth.createUserWithEmailAndPassword(
+                            email: email, password: password);
+                        // ユーザー登録に成功した場合
+                        // チャット画面に遷移＋ログイン画面を破棄
+                        await Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(builder: (context) {
+                          return MyToDoApp();
+                        }));
+                      } catch (e) {
+                        // ユーザー登録に失敗した場合
+                        setState(() {
+                          infoText = "登録に失敗しました：${e.toString()}";
+                        });
+                      }
+                    },
+                  ))
             ]),
       )),
     );
