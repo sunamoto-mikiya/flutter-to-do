@@ -294,7 +294,7 @@ class _ToDoAddPageState extends State<ToDoAddPage> {
                 },
                 child: const Text(
                   '期限を選択',
-                  style: TextStyle(color: Colors.blue),
+                  style: TextStyle(color: Colors.black),
                 )),
             const SizedBox(height: 8),
             Container(
@@ -322,7 +322,7 @@ class _ToDoAddPageState extends State<ToDoAddPage> {
               child: ElevatedButton(
                 child: Text(
                   'リスト追加ボタン',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.black),
                 ),
                 onPressed: () async {
                   final date =
@@ -413,10 +413,21 @@ class _TaskContentsPageState extends State<TaskContents> {
                 return ListView(
                   children: documents.map((document) {
                     return Card(
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(12)),
+                        ),
                         child: ListTile(
-                      title: Text(document['text']),
-                      subtitle: Text(document['description']),
-                    ));
+                          title: Text(
+                            document['text'],
+                            style: TextStyle(fontSize: 25),
+                          ),
+                          subtitle: Text(document['description']),
+                        ));
                   }).toList(),
                 );
               }
