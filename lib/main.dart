@@ -1,7 +1,11 @@
+import 'dart:ffi';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
+import 'package:intl/intl.dart';
 
 void main() async {
   // 初期化処理を追加
@@ -10,6 +14,7 @@ void main() async {
   runApp(MyToDoApp());
 }
 
+//ログインページ
 class LoginPage extends StatefulWidget {
   @override
   _LoginPageState createState() => _LoginPageState();
@@ -109,9 +114,11 @@ class MyToDoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false, // 追加
       title: 'MyToDoApp',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        useMaterial3: true,
+        colorSchemeSeed: Colors.blueGrey,
       ), // ログイン画面を表示
       home: LoginPage(),
     );
@@ -172,7 +179,18 @@ class _ToDoListPageState extends State<ToDoListPage> {
                     return Card(
                         child: ListTile(
                       title: Text(document['text']),
-                      subtitle: Text(document['description']),
+                      subtitle: Text(
+                        DateFormat('yyyy-MM-dd')
+                            .format(document['deadLine'].toDate()),
+                      ),
+                      trailing: Text(
+                          '優先度' + document['level'].toStringAsPrecision(1)),
+                      onTap: () async {
+                        await Navigator.of(context)
+                            .push(MaterialPageRoute(builder: (context) {
+                          return TaskContents(user, document['text']);
+                        }));
+                      },
                     ));
                   }).toList(),
                 );
@@ -214,6 +232,9 @@ class ToDoAddPage extends StatefulWidget {
 class _ToDoAddPageState extends State<ToDoAddPage> {
   String _text = '';
   String _description = '';
+  DateTime _deadLine = DateTime.now();
+  double _level = 1;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -249,10 +270,59 @@ class _ToDoAddPageState extends State<ToDoAddPage> {
             const SizedBox(height: 8),
             Container(
               width: double.infinity,
+              child: Text('期限',
+                  textAlign: TextAlign.left,
+                  style: TextStyle(color: Colors.grey)),
+            ),
+            Text(DateFormat('yyyy-MM-dd').format(_deadLine),
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                )),
+            OutlinedButton(
+                onPressed: () {
+                  DatePicker.showDatePicker(context,
+                      showTitleActions: true,
+                      minTime: DateTime(2000, 1, 1),
+                      maxTime: DateTime(2050, 1, 1),
+                      onConfirm: (DateTime date) {
+                    setState(() {
+                      _deadLine = date;
+                    });
+                  }, currentTime: DateTime.now(), locale: LocaleType.jp);
+                },
+                child: const Text(
+                  '期限を選択',
+                  style: TextStyle(color: Colors.black),
+                )),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              child: Text('優先度',
+                  textAlign: TextAlign.left,
+                  style: TextStyle(color: Colors.grey)),
+            ),
+            Slider(
+                value: _level,
+                min: 1,
+                max: 5,
+                label: _level.round().toString(),
+                divisions: 5,
+                inactiveColor: Colors.black12,
+                activeColor: Colors.red,
+                onChanged: (level) {
+                  setState(() {
+                    _level = level.round().toDouble();
+                  });
+                }),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
               child: ElevatedButton(
                 child: Text(
                   'リスト追加ボタン',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.black),
                 ),
                 onPressed: () async {
                   final date =
@@ -265,6 +335,8 @@ class _ToDoAddPageState extends State<ToDoAddPage> {
                       .set({
                     'text': _text,
                     'description': _description,
+                    'deadLine': _deadLine,
+                    'level': _level,
                     'email': email,
                     'date': date
                   });
@@ -284,6 +356,88 @@ class _ToDoAddPageState extends State<ToDoAddPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+//タスク詳細ページ
+class TaskContents extends StatefulWidget {
+  TaskContents(this.user, this.text);
+  final User user;
+  final String text;
+  @override
+  _TaskContentsPageState createState() => _TaskContentsPageState(text);
+}
+
+class _TaskContentsPageState extends State<TaskContents> {
+  _TaskContentsPageState(this.text);
+  final String text;
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('タスク詳細画面'),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () async {
+              // ログアウト処理
+              // 内部で保持しているログイン情報等が初期化される
+              // （現時点ではログアウト時はこの処理を呼び出せばOKと、思うぐらいで大丈夫です）
+              await FirebaseAuth.instance.signOut();
+              // ログイン画面に遷移＋チャット画面を破棄
+              await Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) {
+                  return LoginPage();
+                }),
+              );
+            },
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+            // 投稿メッセージ一覧を取得（非同期処理）
+            // 投稿日時でソート
+            stream: FirebaseFirestore.instance
+                .collection('posts')
+                .where('text', isEqualTo: text)
+                .snapshots(),
+            builder: (context, snapshot) {
+              // データが取得できた場合
+              if (snapshot.hasData) {
+                final List<DocumentSnapshot> documents = snapshot.data!.docs;
+                return ListView(
+                  children: documents.map((document) {
+                    return Card(
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(12)),
+                        ),
+                        child: ListTile(
+                          title: Text(
+                            document['text'],
+                            style: TextStyle(fontSize: 25),
+                          ),
+                          subtitle: Text(document['description']),
+                        ));
+                  }).toList(),
+                );
+              }
+              // データが読込中の場合
+              return Center(
+                child: Text('読込中...'),
+              );
+            },
+          ))
+        ],
       ),
     );
   }
