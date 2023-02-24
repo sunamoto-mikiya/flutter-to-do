@@ -153,14 +153,37 @@ class _ToDoListPageState extends State<ToDoListPage> {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: toDoList.length,
-        itemBuilder: (context, index) {
-          return Card(
-              child: ListTile(
-            title: Text(toDoList[index]),
-          ));
-        },
+      body: Column(
+        children: [
+          Expanded(
+              child: FutureBuilder<QuerySnapshot>(
+            // 投稿メッセージ一覧を取得（非同期処理）
+            // 投稿日時でソート
+            future: FirebaseFirestore.instance
+                .collection('posts')
+                .orderBy('date')
+                .get(),
+            builder: (context, snapshot) {
+              // データが取得できた場合
+              if (snapshot.hasData) {
+                final List<DocumentSnapshot> documents = snapshot.data!.docs;
+                return ListView(
+                  children: documents.map((document) {
+                    return Card(
+                        child: ListTile(
+                      title: Text(document['text']),
+                      subtitle: Text(document['description']),
+                    ));
+                  }).toList(),
+                );
+              }
+              // データが読込中の場合
+              return Center(
+                child: Text('読込中...'),
+              );
+            },
+          ))
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
