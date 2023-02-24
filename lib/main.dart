@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -221,6 +223,7 @@ class _ToDoAddPageState extends State<ToDoAddPage> {
   String _text = '';
   String _description = '';
   DateTime _deadLine = DateTime.now();
+  double _level = 1;
 
   @override
   Widget build(BuildContext context) {
@@ -255,6 +258,12 @@ class _ToDoAddPageState extends State<ToDoAddPage> {
               },
             ),
             const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              child: Text('期限',
+                  textAlign: TextAlign.left,
+                  style: TextStyle(color: Colors.grey)),
+            ),
             Text(DateFormat('yyyy-MM-dd').format(_deadLine),
                 style: TextStyle(
                   color: Colors.black,
@@ -277,6 +286,26 @@ class _ToDoAddPageState extends State<ToDoAddPage> {
                   '期限を選択',
                   style: TextStyle(color: Colors.blue),
                 )),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              child: Text('優先度',
+                  textAlign: TextAlign.left,
+                  style: TextStyle(color: Colors.grey)),
+            ),
+            Slider(
+                value: _level,
+                min: 1,
+                max: 5,
+                label: _level.round().toString(),
+                divisions: 5,
+                inactiveColor: Colors.black12,
+                activeColor: Colors.red,
+                onChanged: (level) {
+                  setState(() {
+                    _level = level.round().toDouble();
+                  });
+                }),
             const SizedBox(height: 8),
             Container(
               width: double.infinity,
