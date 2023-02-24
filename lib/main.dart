@@ -17,35 +17,36 @@ class MyToDoApp extends StatelessWidget {
   }
 }
 
-class ToDoListPage extends StatelessWidget {
+class ToDoListPage extends StatefulWidget {
   @override
+  _ToDoListPageState createState() => _ToDoListPageState();
+}
+
+class _ToDoListPageState extends State<ToDoListPage> {
+  @override
+  List<String> toDoList = [];
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ListView(
-        children: <Widget>[
-          Card(
+      body: ListView.builder(
+        itemCount: toDoList.length,
+        itemBuilder: (context, index) {
+          return Card(
               child: ListTile(
-            title: Text('hoge'),
-          )),
-          Card(
-              child: ListTile(
-            title: Text('hoge'),
-          )),
-          Card(
-              child: ListTile(
-            title: Text('hoge'),
-          )),
-          Card(
-              child: ListTile(
-            title: Text('hoge'),
-          ))
-        ],
+            title: Text(toDoList[index]),
+          ));
+        },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+        onPressed: () async {
+          final newListText = await Navigator.of(context)
+              .push(MaterialPageRoute(builder: (context) {
             return ToDoAddPage();
           }));
+          if (newListText != null) {
+            setState(() {
+              toDoList.add(newListText);
+            });
+          }
         },
         child: Icon(Icons.add),
       ),
@@ -53,7 +54,13 @@ class ToDoListPage extends StatelessWidget {
   }
 }
 
-class ToDoAddPage extends StatelessWidget {
+class ToDoAddPage extends StatefulWidget {
+  @override
+  _ToDoAddPageState createState() => _ToDoAddPageState();
+}
+
+class _ToDoAddPageState extends State<ToDoAddPage> {
+  String _text = '';
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -65,12 +72,21 @@ class ToDoAddPage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            TextField(),
+            Text(_text, style: TextStyle(color: Colors.blue)),
+            TextField(
+              onChanged: (String value) {
+                setState(() {
+                  _text = value;
+                });
+              },
+            ),
             const SizedBox(height: 8),
             Container(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.of(context).pop(_text);
+                },
                 child: Text(
                   'リスト追加ボタン',
                   style: TextStyle(color: Colors.white),
