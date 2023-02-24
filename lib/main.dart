@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -122,10 +123,12 @@ class ToDoListPage extends StatefulWidget {
   // ユーザー情報
   final User user;
   @override
-  _ToDoListPageState createState() => _ToDoListPageState();
+  _ToDoListPageState createState() => _ToDoListPageState(user);
 }
 
 class _ToDoListPageState extends State<ToDoListPage> {
+  _ToDoListPageState(this.user);
+  final User user;
   @override
   List<String> toDoList = [];
   Widget build(BuildContext context) {
@@ -150,20 +153,43 @@ class _ToDoListPageState extends State<ToDoListPage> {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: toDoList.length,
-        itemBuilder: (context, index) {
-          return Card(
-              child: ListTile(
-            title: Text(toDoList[index]),
-          ));
-        },
+      body: Column(
+        children: [
+          Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+            // 投稿メッセージ一覧を取得（非同期処理）
+            // 投稿日時でソート
+            stream: FirebaseFirestore.instance
+                .collection('posts')
+                .orderBy('date')
+                .snapshots(),
+            builder: (context, snapshot) {
+              // データが取得できた場合
+              if (snapshot.hasData) {
+                final List<DocumentSnapshot> documents = snapshot.data!.docs;
+                return ListView(
+                  children: documents.map((document) {
+                    return Card(
+                        child: ListTile(
+                      title: Text(document['text']),
+                      subtitle: Text(document['description']),
+                    ));
+                  }).toList(),
+                );
+              }
+              // データが読込中の場合
+              return Center(
+                child: Text('読込中...'),
+              );
+            },
+          ))
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final newListText = await Navigator.of(context)
               .push(MaterialPageRoute(builder: (context) {
-            return ToDoAddPage();
+            return ToDoAddPage(user);
           }));
           if (newListText != null) {
             setState(() {
@@ -179,12 +205,15 @@ class _ToDoListPageState extends State<ToDoListPage> {
 
 //タスク追加ページ
 class ToDoAddPage extends StatefulWidget {
+  ToDoAddPage(this.user);
+  final User user;
   @override
   _ToDoAddPageState createState() => _ToDoAddPageState();
 }
 
 class _ToDoAddPageState extends State<ToDoAddPage> {
   String _text = '';
+  String _description = '';
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -198,9 +227,22 @@ class _ToDoAddPageState extends State<ToDoAddPage> {
           children: <Widget>[
             Text(_text, style: TextStyle(color: Colors.blue)),
             TextField(
+              decoration: InputDecoration(labelText: 'タイトル'),
               onChanged: (String value) {
                 setState(() {
                   _text = value;
+                });
+              },
+            ),
+            TextFormField(
+              decoration: InputDecoration(labelText: '詳細'),
+              // 複数行のテキスト入力
+              keyboardType: TextInputType.multiline,
+              // 最大3行
+              maxLines: 3,
+              onChanged: (String value) {
+                setState(() {
+                  _description = value;
                 });
               },
             ),
@@ -208,13 +250,26 @@ class _ToDoAddPageState extends State<ToDoAddPage> {
             Container(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop(_text);
-                },
                 child: Text(
                   'リスト追加ボタン',
                   style: TextStyle(color: Colors.white),
                 ),
+                onPressed: () async {
+                  final date =
+                      DateTime.now().toLocal().toIso8601String(); // 現在の日時
+                  final email = widget.user.email; // AddPostPage のデータを参照
+                  // 投稿メッセージ用ドキュメント作成
+                  await FirebaseFirestore.instance
+                      .collection('posts') // コレクションID指定
+                      .doc() // ドキュメントID自動生成
+                      .set({
+                    'text': _text,
+                    'description': _description,
+                    'email': email,
+                    'date': date
+                  });
+                  Navigator.of(context).pop(_text);
+                },
               ),
             ),
             const SizedBox(height: 8),
