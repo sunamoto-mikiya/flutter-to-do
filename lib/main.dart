@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_datetime_picker/flutter_datetime_picker.dart';
+import 'package:intl/intl.dart';
 
 void main() async {
   // 初期化処理を追加
@@ -10,6 +12,7 @@ void main() async {
   runApp(MyToDoApp());
 }
 
+//ログインページ
 class LoginPage extends StatefulWidget {
   @override
   _LoginPageState createState() => _LoginPageState();
@@ -172,7 +175,10 @@ class _ToDoListPageState extends State<ToDoListPage> {
                     return Card(
                         child: ListTile(
                       title: Text(document['text']),
-                      subtitle: Text(document['description']),
+                      subtitle: Text(
+                        DateFormat('yyyy-MM-dd')
+                            .format(document['deadLine'].toDate()),
+                      ),
                     ));
                   }).toList(),
                 );
@@ -214,6 +220,8 @@ class ToDoAddPage extends StatefulWidget {
 class _ToDoAddPageState extends State<ToDoAddPage> {
   String _text = '';
   String _description = '';
+  DateTime _deadLine = DateTime.now();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -247,6 +255,29 @@ class _ToDoAddPageState extends State<ToDoAddPage> {
               },
             ),
             const SizedBox(height: 8),
+            Text(DateFormat('yyyy-MM-dd').format(_deadLine),
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                )),
+            OutlinedButton(
+                onPressed: () {
+                  DatePicker.showDatePicker(context,
+                      showTitleActions: true,
+                      minTime: DateTime(2000, 1, 1),
+                      maxTime: DateTime(2050, 1, 1),
+                      onConfirm: (DateTime date) {
+                    setState(() {
+                      _deadLine = date;
+                    });
+                  }, currentTime: DateTime.now(), locale: LocaleType.jp);
+                },
+                child: const Text(
+                  '期限を選択',
+                  style: TextStyle(color: Colors.blue),
+                )),
+            const SizedBox(height: 8),
             Container(
               width: double.infinity,
               child: ElevatedButton(
@@ -265,6 +296,7 @@ class _ToDoAddPageState extends State<ToDoAddPage> {
                       .set({
                     'text': _text,
                     'description': _description,
+                    'deadLine': _deadLine,
                     'email': email,
                     'date': date
                   });
