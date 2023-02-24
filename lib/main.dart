@@ -181,6 +181,8 @@ class _ToDoListPageState extends State<ToDoListPage> {
                         DateFormat('yyyy-MM-dd')
                             .format(document['deadLine'].toDate()),
                       ),
+                      trailing: Text(
+                          '優先度' + document['level'].toStringAsPrecision(1)),
                     ));
                   }).toList(),
                 );
@@ -326,6 +328,7 @@ class _ToDoAddPageState extends State<ToDoAddPage> {
                     'text': _text,
                     'description': _description,
                     'deadLine': _deadLine,
+                    'level': _level,
                     'email': email,
                     'date': date
                   });
