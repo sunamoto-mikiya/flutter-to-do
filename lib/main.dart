@@ -1,9 +1,47 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
-void main() {
+void main() async {
+  // 初期化処理を追加
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(MyToDoApp());
 }
 
+class LoginPage extends StatefulWidget {
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  // メッセージ表示用
+  String infoText = '';
+  // 入力したメールアドレス・パスワード
+  String email = '';
+  String password = '';
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+          child: Container(
+        padding: EdgeInsets.all(24),
+        child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              TextFormField(
+                decoration: InputDecoration(labelText: 'メールアドレス'),
+                onChanged: (String value) => setState(() {
+                  email = value;
+                }),
+              )
+            ]),
+      )),
+    );
+  }
+}
+
+//タスク一覧ページ
 class MyToDoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -27,6 +65,7 @@ class _ToDoListPageState extends State<ToDoListPage> {
   List<String> toDoList = [];
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: Text('タスク一覧画面')),
       body: ListView.builder(
         itemCount: toDoList.length,
         itemBuilder: (context, index) {
@@ -54,6 +93,7 @@ class _ToDoListPageState extends State<ToDoListPage> {
   }
 }
 
+//タスク追加ページ
 class ToDoAddPage extends StatefulWidget {
   @override
   _ToDoAddPageState createState() => _ToDoAddPageState();
