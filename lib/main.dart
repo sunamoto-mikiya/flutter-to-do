@@ -156,13 +156,13 @@ class _ToDoListPageState extends State<ToDoListPage> {
       body: Column(
         children: [
           Expanded(
-              child: FutureBuilder<QuerySnapshot>(
+              child: StreamBuilder<QuerySnapshot>(
             // 投稿メッセージ一覧を取得（非同期処理）
             // 投稿日時でソート
-            future: FirebaseFirestore.instance
+            stream: FirebaseFirestore.instance
                 .collection('posts')
                 .orderBy('date')
-                .get(),
+                .snapshots(),
             builder: (context, snapshot) {
               // データが取得できた場合
               if (snapshot.hasData) {
