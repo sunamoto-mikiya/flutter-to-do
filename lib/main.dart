@@ -114,9 +114,11 @@ class MyToDoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false, // 追加
       title: 'MyToDoApp',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        useMaterial3: true,
+        colorSchemeSeed: Colors.blueGrey,
       ), // ログイン画面を表示
       home: LoginPage(),
     );
@@ -183,6 +185,12 @@ class _ToDoListPageState extends State<ToDoListPage> {
                       ),
                       trailing: Text(
                           '優先度' + document['level'].toStringAsPrecision(1)),
+                      onTap: () async {
+                        await Navigator.of(context)
+                            .push(MaterialPageRoute(builder: (context) {
+                          return TaskContents(user, document['text']);
+                        }));
+                      },
                     ));
                   }).toList(),
                 );
@@ -348,6 +356,77 @@ class _ToDoAddPageState extends State<ToDoAddPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+//タスク詳細ページ
+class TaskContents extends StatefulWidget {
+  TaskContents(this.user, this.text);
+  final User user;
+  final String text;
+  @override
+  _TaskContentsPageState createState() => _TaskContentsPageState(text);
+}
+
+class _TaskContentsPageState extends State<TaskContents> {
+  _TaskContentsPageState(this.text);
+  final String text;
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('タスク詳細画面'),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () async {
+              // ログアウト処理
+              // 内部で保持しているログイン情報等が初期化される
+              // （現時点ではログアウト時はこの処理を呼び出せばOKと、思うぐらいで大丈夫です）
+              await FirebaseAuth.instance.signOut();
+              // ログイン画面に遷移＋チャット画面を破棄
+              await Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) {
+                  return LoginPage();
+                }),
+              );
+            },
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+            // 投稿メッセージ一覧を取得（非同期処理）
+            // 投稿日時でソート
+            stream: FirebaseFirestore.instance
+                .collection('posts')
+                .where('text', isEqualTo: text)
+                .snapshots(),
+            builder: (context, snapshot) {
+              // データが取得できた場合
+              if (snapshot.hasData) {
+                final List<DocumentSnapshot> documents = snapshot.data!.docs;
+                return ListView(
+                  children: documents.map((document) {
+                    return Card(
+                        child: ListTile(
+                      title: Text(document['text']),
+                      subtitle: Text(document['description']),
+                    ));
+                  }).toList(),
+                );
+              }
+              // データが読込中の場合
+              return Center(
+                child: Text('読込中...'),
+              );
+            },
+          ))
+        ],
       ),
     );
   }
